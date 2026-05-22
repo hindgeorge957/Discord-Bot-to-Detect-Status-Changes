@@ -72,6 +72,9 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   if (!member || member.user.id !== WATCHED_USER_ID) return;
   console.log(`[DEBUG] oldCustom: ${getCustomStatus(oldPresence)} | newCustom: ${getCustomStatus(newPresence)}`);
 
+  // Ignore going offline — presence data is cleared and not a real status change
+  if (!newPresence || newPresence.status === "offline") return;
+
   const oldCustom = getCustomStatus(oldPresence);
   const newCustom = getCustomStatus(newPresence);
   if (oldCustom === newCustom) return;
