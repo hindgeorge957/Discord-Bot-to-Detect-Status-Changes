@@ -1,13 +1,20 @@
 require("dotenv").config();
 const { Client, GatewayIntentBits, ActivityType, EmbedBuilder } = require("discord.js");
+const http = require("http");
+
+// Render requires a web service to bind a port — this satisfies that requirement
+const PORT = process.env.PORT || 3000;
+http.createServer((_, res) => res.end("Bot is running")).listen(PORT, () => {
+  console.log(`🌐 Health check server listening on port ${PORT}`);
+});
 
 // ─── Validate config ──────────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
-  console.error("Missing DISCORD_TOKEN in .env — see README.md");
+  console.error("❌  Missing DISCORD_TOKEN in .env — see README.md");
   process.exit(1);
 }
 if (!process.env.LOG_CHANNEL_ID) {
-  console.error("Missing LOG_CHANNEL_ID in .env — see README.md");
+  console.error("❌  Missing LOG_CHANNEL_ID in .env — see README.md");
   process.exit(1);
 }
 
@@ -76,8 +83,8 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
 // ─── Ready ────────────────────────────────────────────────────────────────────
 
 client.once("ready", async () => {
-  console.log(`Logged in as ${client.user.tag}`);
-  console.log(`Logging to channel: ${process.env.LOG_CHANNEL_ID}`);
+  console.log(`✅ Logged in as ${client.user.tag}`);
+  console.log(`📢 Logging to channel: ${process.env.LOG_CHANNEL_ID}`);
 });
 
 client.login(process.env.DISCORD_TOKEN);
