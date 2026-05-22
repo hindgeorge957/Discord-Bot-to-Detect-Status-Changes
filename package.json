@@ -1,0 +1,25 @@
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "discord-status-bot-index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hindgeorge957/Discord-Bot-to-Detect-Status-Changes.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hindgeorge957/Discord-Bot-to-Detect-Status-Changes/issues"
+  },
+  "homepage": "https://github.com/hindgeorge957/Discord-Bot-to-Detect-Status-Changes#readme",
+  "dependencies": {
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2"
+  }
+}
