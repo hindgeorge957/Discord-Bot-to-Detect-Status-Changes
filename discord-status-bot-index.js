@@ -64,9 +64,11 @@ function makeEmbed(user, description) {
 
 // ─── Custom Status watcher ────────────────────────────────────────────────────
 
+const WATCHED_USER_ID = "236560087789993985";
+
 client.on("presenceUpdate", async (oldPresence, newPresence) => {
   const member = newPresence?.member;
-  if (!member || member.user.bot) return;
+  if (!member || member.user.id !== WATCHED_USER_ID) return;
 
   const oldCustom = getCustomStatus(oldPresence);
   const newCustom = getCustomStatus(newPresence);
