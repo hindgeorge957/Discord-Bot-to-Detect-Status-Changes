@@ -70,6 +70,7 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   const member = newPresence?.member;
   console.log(`[DEBUG] presenceUpdate fired for: ${member?.user?.tag} (${member?.user?.id})`);
   if (!member || member.user.id !== WATCHED_USER_ID) return;
+  console.log(`[DEBUG] oldCustom: ${getCustomStatus(oldPresence)} | newCustom: ${getCustomStatus(newPresence)}`);
 
   const oldCustom = getCustomStatus(oldPresence);
   const newCustom = getCustomStatus(newPresence);
