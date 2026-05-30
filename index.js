@@ -67,18 +67,18 @@ function makeEmbed(user, description) {
 const WATCHED_USER_ID = "236560087789993985";
 
 client.on("presenceUpdate", async (oldPresence, newPresence) => {
-  const member = newPresence?.member;
-  console.log(`[DEBUG] presenceUpdate fired for: ${member?.user?.tag} (${member?.user?.id})`);
+  const member = newPresence?.member ?? oldPresence?.member;
   if (!member || member.user.id !== WATCHED_USER_ID) return;
-  console.log(`[DEBUG] oldCustom: ${getCustomStatus(oldPresence)} | newCustom: ${getCustomStatus(newPresence)}`);
 
-  // Ignore going offline or coming back online
-  if (!newPresence || newPresence.status === "offline") return;
-  if (!oldPresence || oldPresence.status === "offline") return;
+  // Ignore if either side has no presence data (going offline / coming online)
+  if (!oldPresence || !newPresence) return;
+  if (oldPresence.status === "offline" || newPresence.status === "offline") return;
 
   const oldCustom = getCustomStatus(oldPresence);
   const newCustom = getCustomStatus(newPresence);
   if (oldCustom === newCustom) return;
+
+  console.log(`[DEBUG] Custom status changed: "${oldCustom}" → "${newCustom}"`);
 
   const from = oldCustom ? `"${oldCustom}"` : "_none_";
   const to   = newCustom ? `"${newCustom}"` : "_none_";
