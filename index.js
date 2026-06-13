@@ -2,13 +2,11 @@ require("dotenv").config();
 const { Client, GatewayIntentBits, ActivityType, EmbedBuilder } = require("discord.js");
 const http = require("http");
 
-// Render requires a web service to bind a port — this satisfies that requirement
 const PORT = process.env.PORT || 3000;
 http.createServer((_, res) => res.end("Bot is running")).listen(PORT, () => {
   console.log(`🌐 Health check server listening on port ${PORT}`);
 });
 
-// ─── Validate config ──────────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
   console.error("❌  Missing DISCORD_TOKEN in .env — see README.md");
   process.exit(1);
@@ -18,7 +16,6 @@ if (!process.env.LOG_CHANNEL_ID) {
   process.exit(1);
 }
 
-// ─── Client ───────────────────────────────────────────────────────────────────
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -27,7 +24,7 @@ const client = new Client({
   ],
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const WATCHED_USER_ID = "511942753194606594";
 
 function getCustomStatus(presence) {
   if (!presence?.activities) return null;
@@ -62,23 +59,21 @@ function makeEmbed(user, description) {
     .setColor(0x5865f2);
 }
 
-// ─── Custom Status watcher ────────────────────────────────────────────────────
-
-const WATCHED_USER_ID = "236560087789993985";
-
 client.on("presenceUpdate", async (oldPresence, newPresence) => {
   const member = newPresence?.member ?? oldPresence?.member;
   if (!member || member.user.id !== WATCHED_USER_ID) return;
 
-  // Ignore if either side has no presence data (going offline / coming online)
-  if (!oldPresence || !newPresence) return;
-  if (oldPresence.status === "offline" || newPresence.status === "offline") return;
+  // Skip if either presence is missing or was/is offline
+  const oldStatus = oldPresence?.status;
+  const newStatus = newPresence?.status;
+  if (!oldStatus || !newStatus) return;
+  if (oldStatus === "offline" || newStatus === "offline") return;
 
   const oldCustom = getCustomStatus(oldPresence);
   const newCustom = getCustomStatus(newPresence);
   if (oldCustom === newCustom) return;
 
-  console.log(`[DEBUG] Custom status changed: "${oldCustom}" → "${newCustom}"`);
+  console.log(`[DEBUG] Custom status: "${oldCustom}" → "${newCustom}"`);
 
   const from = oldCustom ? `"${oldCustom}"` : "_none_";
   const to   = newCustom ? `"${newCustom}"` : "_none_";
@@ -88,9 +83,7 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   );
 });
 
-// ─── Ready ────────────────────────────────────────────────────────────────────
-
-client.once("ready", async () => {
+client.once("ready", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
   console.log(`📢 Logging to channel: ${process.env.LOG_CHANNEL_ID}`);
 });
