@@ -26,6 +26,9 @@ const client = new Client({
 
 const WATCHED_USER_ID = "511942753194606594";
 
+// Cache the last known custom status so we don't fire when they come back online
+let lastKnownCustomStatus = undefined; // undefined = never seen
+
 function getCustomStatus(presence) {
   if (!presence?.activities) return null;
   const custom = presence.activities.find((a) => a.type === ActivityType.Custom);
@@ -63,20 +66,28 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   const member = newPresence?.member ?? oldPresence?.member;
   if (!member || member.user.id !== WATCHED_USER_ID) return;
 
-  // Skip if either presence is missing or was/is offline
-  const oldStatus = oldPresence?.status;
-  const newStatus = newPresence?.status;
-  if (!oldStatus || !newStatus) return;
-  if (oldStatus === "offline" || newStatus === "offline") return;
+  // If user is offline, update cache and stop
+  if (!newPresence || newPresence.status === "offline") {
+    // Don't clear cache — we want to remember what they had
+    return;
+  }
 
-  const oldCustom = getCustomStatus(oldPresence);
   const newCustom = getCustomStatus(newPresence);
-  if (oldCustom === newCustom) return;
 
-  console.log(`[DEBUG] Custom status: "${oldCustom}" → "${newCustom}"`);
+  // First time we've seen them — just cache, don't alert
+  if (lastKnownCustomStatus === undefined) {
+    lastKnownCustomStatus = newCustom;
+    return;
+  }
 
-  const from = oldCustom ? `"${oldCustom}"` : "_none_";
+  // Only fire if the status actually changed from what we last recorded
+  if (newCustom === lastKnownCustomStatus) return;
+
+  const from = lastKnownCustomStatus ? `"${lastKnownCustomStatus}"` : "_none_";
   const to   = newCustom ? `"${newCustom}"` : "_none_";
+  lastKnownCustomStatus = newCustom;
+
+  console.log(`[DEBUG] Custom status: ${from} → ${to}`);
 
   await sendEmbed(
     makeEmbed(member.user, `✏️ **Custom status changed**\n${from} → ${to}`)
