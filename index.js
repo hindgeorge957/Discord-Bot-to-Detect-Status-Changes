@@ -24,10 +24,11 @@ const client = new Client({
   ],
 });
 
-const WATCHED_USER_ID = "511942753194606594";
+const WATCHED_USER_ID = "236560087789993985";
+const DEBOUNCE_MS = 5000; // wait 5s to confirm the change sticks before alerting
 
-// Cache the last known custom status so we don't fire when they come back online
 let lastKnownCustomStatus = undefined; // undefined = never seen
+let pendingTimeout = null;
 
 function getCustomStatus(presence) {
   if (!presence?.activities) return null;
@@ -66,11 +67,8 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   const member = newPresence?.member ?? oldPresence?.member;
   if (!member || member.user.id !== WATCHED_USER_ID) return;
 
-  // If user is offline, update cache and stop
-  if (!newPresence || newPresence.status === "offline") {
-    // Don't clear cache — we want to remember what they had
-    return;
-  }
+  // If user is offline, don't touch the cache — wait for them to come back
+  if (!newPresence || newPresence.status === "offline") return;
 
   const newCustom = getCustomStatus(newPresence);
 
@@ -80,18 +78,39 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
     return;
   }
 
-  // Only fire if the status actually changed from what we last recorded
-  if (newCustom === lastKnownCustomStatus) return;
+  // Already matches what we last confirmed — nothing to do
+  if (newCustom === lastKnownCustomStatus) {
+    // A pending change reverted back — cancel it
+    if (pendingTimeout) {
+      clearTimeout(pendingTimeout);
+      pendingTimeout = null;
+    }
+    return;
+  }
 
-  const from = lastKnownCustomStatus ? `"${lastKnownCustomStatus}"` : "_none_";
-  const to   = newCustom ? `"${newCustom}"` : "_none_";
-  lastKnownCustomStatus = newCustom;
+  // Value differs from confirmed state — wait to see if it sticks (debounce flicker)
+  if (pendingTimeout) clearTimeout(pendingTimeout);
 
-  console.log(`[DEBUG] Custom status: ${from} → ${to}`);
+  pendingTimeout = setTimeout(async () => {
+    pendingTimeout = null;
 
-  await sendEmbed(
-    makeEmbed(member.user, `✏️ **Custom status changed**\n${from} → ${to}`)
-  );
+    // Re-check live presence after the wait, in case it changed again
+    const freshMember = await member.guild.members.fetch(WATCHED_USER_ID).catch(() => null);
+    const livePresence = freshMember?.presence;
+    const liveCustom = getCustomStatus(livePresence);
+
+    if (liveCustom === lastKnownCustomStatus) return; // reverted, ignore
+
+    const from = lastKnownCustomStatus ? `"${lastKnownCustomStatus}"` : "_none_";
+    const to   = liveCustom ? `"${liveCustom}"` : "_none_";
+    lastKnownCustomStatus = liveCustom;
+
+    console.log(`[DEBUG] Confirmed custom status change: ${from} → ${to}`);
+
+    await sendEmbed(
+      makeEmbed(member.user, `✏️ **Custom status changed**\n${from} → ${to}`)
+    );
+  }, DEBOUNCE_MS);
 });
 
 client.once("ready", () => {
